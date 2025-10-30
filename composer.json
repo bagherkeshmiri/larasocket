@@ -1,0 +1,18 @@
+{
+  "name": "bagherkeshmiri/larasocket",
+  "description": "Simple secure native WebSocket server for Laravel (no external packages)",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Bagherkeshmiri\\LaraSocket\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Bagherkeshmiri\\LaraSocket\\LaraSocketServiceProvider"
+      ]
+    }
+  }
+}
