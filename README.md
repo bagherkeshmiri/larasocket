@@ -1,4 +1,3 @@
-````markdown
 # LaraSocket
 Secure native PHP WebSocket for Laravel (no external packages)
 
