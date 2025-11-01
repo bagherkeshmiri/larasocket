@@ -4,7 +4,7 @@ namespace Bagherkeshmiri\LaraSocket\Console\Commands;
 
 use Illuminate\Support\Facades\Log;
 
-class ServeWebSocket
+class LaraSocketServe
 {
     private array $clients = [];
     private array $handshakes = [];
