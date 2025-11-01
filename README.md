@@ -8,7 +8,7 @@ Supports token-based authentication, internal admin port, rate limiting, UTF-8 v
 
 ## Features
 - Token-based authentication
-- Admin port (127.0.0.1) for internal broadcasts
+- Server port (127.0.0.1) for internal broadcasts
 - Rate limiting & maximum clients
 - UTF-8 validation and logging
 - Publishable configuration
