@@ -8,11 +8,13 @@ class LaraSocketClient
 {
     private string $host;
     private int $port;
+    private string $token;
 
-    public function __construct(?string $host = null, ?int $port = null)
+    public function __construct(string $token, ?string $host = null, ?int $port = null)
     {
         $this->host = $host ?? config('larasocket.host', '127.0.0.1');
         $this->port = $port ?? config('larasocket.server_port', 9001);
+        $this->token = $token;
     }
 
     public function sendToUser($userId, array $data): bool
@@ -38,7 +40,7 @@ class LaraSocketClient
 
     private function sendRaw(string $msg): bool
     {
-        $fp = @stream_socket_client("tcp://{$this->host}:{$this->port}", $errno, $errstr, 2);
+        $fp = @stream_socket_client("tcp://{$this->host}:{$this->port}/?token={$this->token}", $errno, $errstr, 2);
 
         if (!$fp) {
             Log::error("LaraSocketClient cannot connect to {$this->host}:{$this->port} - $errstr ($errno)");
