@@ -16,7 +16,7 @@ class LaraSocketServiceProvider extends ServiceProvider
     {
         // Publish the config file to the application
         $this->publishes([
-            __DIR__ . '/../config/larasocket.php' => config_path('larasocket.php'),
+            __DIR__ . '/config/larasocket.php' => config_path('larasocket.php'),
         ], 'config');
 
         // Register artisan commands
