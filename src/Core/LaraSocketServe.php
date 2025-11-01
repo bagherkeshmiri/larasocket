@@ -3,6 +3,8 @@
 namespace Bagherkeshmiri\LaraSocket\Core;
 
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 class LaraSocketServe
 {
@@ -23,7 +25,7 @@ class LaraSocketServe
         $server = stream_socket_server("tcp://{$this->host}:{$this->port}", $errno, $errstr);
 
         if (!$server) {
-            throw new \RuntimeException("Cannot start server: $errstr ($errno)");
+            throw new RuntimeException("Cannot start server: $errstr ($errno)");
         }
 
         stream_set_blocking($server, false);
@@ -59,11 +61,14 @@ class LaraSocketServe
                     continue;
                 }
 
+                // Perform WebSocket handshake
                 if (!$this->handshakes[$id] && preg_match('/Sec-WebSocket-Key: (.*)\r\n/', $data, $m)) {
                     $key = trim($m[1]);
                     $token = $this->extractToken($data);
 
-                    if (!$this->validateToken($token)) {
+                    // 🔒 Validate token based on auth_mode
+                    if (!$this->isAuthorized($token)) {
+                        $this->logInfo("Unauthorized connection attempt from client {$id}");
                         fclose($res);
                         $this->disconnectClient($id);
                         continue;
@@ -80,6 +85,7 @@ class LaraSocketServe
                     continue;
                 }
 
+                // After handshake, process messages
                 if ($this->handshakes[$id]) {
                     $msg = $this->decodeFrame($data);
                     if ($msg === '') {
@@ -87,6 +93,7 @@ class LaraSocketServe
                     }
 
                     if (!$this->allowMessage($id)) {
+                        $this->logInfo("Rate limit exceeded for client {$id}");
                         fclose($res);
                         $this->disconnectClient($id);
                         continue;
@@ -98,16 +105,73 @@ class LaraSocketServe
         }
     }
 
+    /**
+     * Extract token from WebSocket handshake request (GET /?token=...)
+     */
     private function extractToken(string $headers): ?string
     {
-        parse_str(parse_url($headers, PHP_URL_QUERY) ?? '', $qs);
-        return $qs['token'] ?? null;
+        if (preg_match('#GET\s+([^\s]+)\s+HTTP/1\.1#', $headers, $m)) {
+            $url = $m[1];
+            parse_str(parse_url($url, PHP_URL_QUERY) ?? '', $qs);
+            return $qs['token'] ?? null;
+        }
+        return null;
     }
 
-    private function validateToken(?string $token): bool
+    /**
+     * Determines if a connection is authorized based on config auth_mode
+     */
+    private function isAuthorized(?string $token): bool
     {
-        $validator = config('larasocket.token_validator');
-        return is_callable($validator) ? (bool)call_user_func($validator, $token) : true;
+        $mode = config('larasocket.auth_mode', 'none');
+
+        if ($mode === 'none') {
+            // Allow all connections (no authentication)
+            return true;
+        }
+
+        if ($mode === 'sanctum') {
+            return $this->validateSanctumToken($token);
+        }
+
+        // future: passport, jwt, etc.
+        return false;
+    }
+
+    /**
+     * Sanctum token validation
+     */
+    private function validateSanctumToken(?string $token): bool
+    {
+        if (empty($token)) {
+            return false;
+        }
+
+        if (!class_exists(\Laravel\Sanctum\PersonalAccessToken::class)) {
+            Log::warning('Sanctum is not installed but LARASOCKET_AUTH_MODE=sanctum');
+            return false;
+        }
+
+        try {
+            $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            if (!$accessToken) {
+                return false;
+            }
+
+            $user = $accessToken->tokenable;
+            if (!$user) {
+                return false;
+            }
+
+            if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
+                return false;
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            Log::error("LaraSocket Sanctum token error: " . $e->getMessage());
+            return false;
+        }
     }
 
     private function allowMessage(int $id): bool

@@ -9,7 +9,7 @@
  *
  * Features:
  * - Separate ports for browser (client) and internal (admin) connections
- * - Token-based authentication
+ * - Optional token-based authentication using Laravel Sanctum
  * - Rate limiting and maximum client restrictions
  * - Logging via Laravel Log channels
  *
@@ -18,6 +18,7 @@
  * LARASOCKET_HOST=127.0.0.1
  * LARASOCKET_CLIENT_PORT=9000
  * LARASOCKET_SERVER_PORT=9001
+ * LARASOCKET_AUTH_MODE=sanctum
  * LARASOCKET_MAX_CLIENTS=200
  * LARASOCKET_RATE_MESSAGES=20
  * LARASOCKET_RATE_SECONDS=10
@@ -76,34 +77,32 @@ return [
         'per_seconds' => env('LARASOCKET_RATE_SECONDS', 10), // time window in seconds
     ],
 
+
     /*
     |--------------------------------------------------------------------------
-    | Token Validator
+    | Authentication Mode
     |--------------------------------------------------------------------------
     |
-    | A callable function that validates a client's authentication token.
-    | Each WebSocket client must include a valid token in the query string
-    | or the "Sec-WebSocket-Protocol" header.
+    | Available options:
+    |   - 'none'     : No authentication required.
+    |   - 'sanctum'  : Uses Laravel Sanctum token validation.
     |
-    | Example client connection:
-    |   new WebSocket("ws://127.0.0.1:9000/?token=YOUR_TOKEN");
-    |
-    | This default implementation checks the 'api_token' column
-    | of your User model. You can replace it with any custom logic.
+    | Example:
+    |   LARASOCKET_AUTH_MODE=sanctum
     |
     */
-    'token_validator' => function ($token) {
-        if (empty($token)) return false;
-        try {
-            $model = \App\Models\User::class;
-            if (!class_exists($model)) return false;
+    'auth_mode' => env('LARASOCKET_AUTH_MODE', 'none'),
 
-            // Example: check token in 'api_token' field
-            return (bool) $model::where('api_token', $token)->exists();
-        } catch (\Throwable $e) {
-            return false;
-        }
-    },
+    /*
+   |--------------------------------------------------------------------------
+   | Custom Token Validator (optional)
+   |--------------------------------------------------------------------------
+   |
+   | Path to a callable that validates WebSocket tokens.
+   | Example: 'App\\Support\\LaraSocketValidator::check'
+   |
+   */
+    'custom_token_validator' => env('LARASOCKET_TOKEN_VALIDATOR', 'App\\Support\\LaraSocketValidator::check'),
 
     /*
     |--------------------------------------------------------------------------
