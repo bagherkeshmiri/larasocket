@@ -8,13 +8,21 @@ use Throwable;
 
 class LaraSocketServeCommand extends Command
 {
-    protected $signature = 'larasocket:serve {--host=127.0.0.1} {--port=6001}';
+    /**
+     * The name and signature of the console command.
+     *
+     * You can override host/port using:
+     * php artisan larasocket:serve --host=0.0.0.0 --port=9000
+     */
+    protected $signature = 'larasocket:serve {--host=} {--port=}';
     protected $description = 'Run the LaraSocket WebSocket server';
 
     public function handle()
     {
-        $host = $this->option('host');
-        $port = $this->option('port');
+        // Get options or fallback to config
+        $host = $this->option('host') ?? config('larasocket.host');
+        $port = $this->option('port') ?? config('larasocket.client_port');
+
 
         $this->info("🚀 Starting LaraSocket WebSocket server on ws://{$host}:{$port}");
         $this->info("Press Ctrl+C to stop the server");

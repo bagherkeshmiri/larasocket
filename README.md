@@ -54,7 +54,7 @@ php artisan vendor:publish --provider="Bagherkeshmiri\LaraSocket\LaraSocketServi
 6. Start the WebSocket server:
 
 ```bash
-php artisan ws:serve
+php artisan larasocket:serve
 ```
 
 ---
