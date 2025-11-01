@@ -8,6 +8,12 @@
       "Bagherkeshmiri\\LaraSocket\\": "src/"
     }
   },
+  "authors": [
+    {
+      "name": "Bagher Keshmiri",
+      "email": "bagherkeshmiri@gmail.com"
+    }
+  ],
   "extra": {
     "laravel": {
       "providers": [
