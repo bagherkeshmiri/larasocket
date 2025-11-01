@@ -1,6 +1,6 @@
 <?php
 
-namespace Bagherkeshmiri\LaraSocket;
+namespace Bagherkeshmiri\LaraSocket\Core;
 
 use Illuminate\Support\Facades\Log;
 

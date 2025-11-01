@@ -2,7 +2,7 @@
 
 namespace Bagherkeshmiri\LaraSocket;
 
-use Bagherkeshmiri\LaraSocket\Console\LaraSocketServeCommand;
+use Bagherkeshmiri\LaraSocket\Console\Commands\LaraSocketServeCommand;
 use Illuminate\Support\ServiceProvider;
 
 class LaraSocketServiceProvider extends ServiceProvider

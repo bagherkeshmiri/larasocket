@@ -1,9 +1,9 @@
 <?php
 
-namespace Bagherkeshmiri\LaraSocket\Console;
+namespace Bagherkeshmiri\LaraSocket\Console\Commands;
 
+use Bagherkeshmiri\LaraSocket\Core\LaraSocketServe;
 use Illuminate\Console\Command;
-use Bagherkeshmiri\LaraSocket\LaraSocketServe;
 use Throwable;
 
 class LaraSocketServeCommand extends Command
