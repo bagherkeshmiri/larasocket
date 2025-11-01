@@ -24,7 +24,9 @@ class LaraSocketServe
     public function run(): void
     {
         $server = stream_socket_server("tcp://{$this->host}:{$this->port}", $errno, $errstr);
-        if (!$server) throw new RuntimeException("Cannot start server: $errstr ($errno)");
+        if (!$server) {
+            throw new RuntimeException("Cannot start server: $errstr ($errno)");
+        }
 
         stream_set_blocking($server, false);
         $this->clients[(int)$server] = $server;
@@ -35,7 +37,9 @@ class LaraSocketServe
         while (true) {
             $read = $this->clients;
             $write = $except = null;
-            if (stream_select($read, $write, $except, 0, 200000) === false) continue;
+            if (stream_select($read, $write, $except, 0, 200000) === false) {
+                continue;
+            }
 
             foreach ($read as $res) {
                 if ($res === $server) {
@@ -79,14 +83,18 @@ class LaraSocketServe
 
                     // ذخیره user_id -> client_id
                     $userId = $this->getUserIdFromToken($token);
-                    if ($userId) $this->userClients[$userId] = $id;
+                    if ($userId) {
+                        $this->userClients[$userId] = $id;
+                    }
                     continue;
                 }
 
                 // process message
                 if ($this->handshakes[$id]) {
                     $msg = $this->decodeFrame($data);
-                    if ($msg === '') continue;
+                    if ($msg === '') {
+                        continue;
+                    }
 
                     if (!$this->allowMessage($id)) {
                         $this->logInfo("Rate limit exceeded for client {$id}");
@@ -106,23 +114,31 @@ class LaraSocketServe
     {
         if (preg_match('#GET\s+([^\s]+)\s+HTTP/1\.1#', $headers, $m)) {
             $url = $m[1];
+            // parse query string از /app/larasocket یا /?token=...
             parse_str(parse_url($url, PHP_URL_QUERY) ?? '', $qs);
             return $qs['token'] ?? null;
         }
         return null;
     }
 
+
     private function isAuthorized(?string $token): bool
     {
         $mode = config('larasocket.auth_mode', 'none');
-        if ($mode === 'none') return true;
-        if ($mode === 'sanctum') return $this->validateSanctumToken($token);
+        if ($mode === 'none') {
+            return true;
+        }
+        if ($mode === 'sanctum') {
+            return $this->validateSanctumToken($token);
+        }
         return false;
     }
 
     private function validateSanctumToken(?string $token): bool
     {
-        if (empty($token)) return false;
+        if (empty($token)) {
+            return false;
+        }
         if (!class_exists(\Laravel\Sanctum\PersonalAccessToken::class)) {
             Log::warning('Sanctum is not installed but LARASOCKET_AUTH_MODE=sanctum');
             return false;
@@ -130,9 +146,15 @@ class LaraSocketServe
 
         try {
             $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
-            if (!$accessToken) return false;
-            if (!$accessToken->tokenable) return false;
-            if ($accessToken->expires_at && $accessToken->expires_at->isPast()) return false;
+            if (!$accessToken) {
+                return false;
+            }
+            if (!$accessToken->tokenable) {
+                return false;
+            }
+            if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
+                return false;
+            }
             return true;
         } catch (Throwable $e) {
             Log::error("LaraSocket Sanctum token error: " . $e->getMessage());
@@ -158,7 +180,9 @@ class LaraSocketServe
         $now = microtime(true);
         $this->rates[$id] = array_filter($this->rates[$id] ?? [], fn($t) => ($now - $t) <= $seconds);
 
-        if (count($this->rates[$id]) >= $limit) return false;
+        if (count($this->rates[$id]) >= $limit) {
+            return false;
+        }
         $this->rates[$id][] = $now;
         return true;
     }
@@ -167,8 +191,12 @@ class LaraSocketServe
     {
         $decoded = json_decode($msg, true);
         foreach ($this->userClients as $userId => $clientId) {
-            if (!isset($this->clients[$clientId]) || !$this->handshakes[$clientId]) continue;
-            if ($exclude !== null && $clientId === $exclude) continue;
+            if (!isset($this->clients[$clientId]) || !$this->handshakes[$clientId]) {
+                continue;
+            }
+            if ($exclude !== null && $clientId === $exclude) {
+                continue;
+            }
 
             // فرمت پیام سازگار با Echo/Pusher
             $payload = [
@@ -194,14 +222,20 @@ class LaraSocketServe
     {
         $b1 = 0x81;
         $len = strlen($text);
-        if ($len <= 125) return chr($b1) . chr($len) . $text;
-        if ($len <= 65535) return chr($b1) . chr(126) . pack('n', $len) . $text;
+        if ($len <= 125) {
+            return chr($b1) . chr($len) . $text;
+        }
+        if ($len <= 65535) {
+            return chr($b1) . chr(126) . pack('n', $len) . $text;
+        }
         return chr($b1) . chr(127) . pack('J', $len) . $text;
     }
 
     private function decodeFrame(string $data): string
     {
-        if (strlen($data) < 6) return '';
+        if (strlen($data) < 6) {
+            return '';
+        }
         $len = ord($data[1]) & 127;
         if ($len === 126) {
             $masks = substr($data, 4, 4);
@@ -216,7 +250,9 @@ class LaraSocketServe
 
         $text = '';
         $l = strlen($payload);
-        for ($i = 0; $i < $l; ++$i) $text .= $payload[$i] ^ $masks[$i % 4];
+        for ($i = 0; $i < $l; ++$i) {
+            $text .= $payload[$i] ^ $masks[$i % 4];
+        }
         return mb_check_encoding($text, 'UTF-8') ? $text : '';
     }
 
