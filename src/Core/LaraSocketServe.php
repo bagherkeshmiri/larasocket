@@ -210,12 +210,15 @@ class LaraSocketServe
 
     private function disconnectClient(int $id): void
     {
-        if (isset($this->clients[$id])) {
-            @fclose($this->clients[$id]);
-            unset($this->clients[$id], $this->handshakes[$id], $this->rates[$id]);
-            // حذف از mapping user_id
-            $this->userClients = array_filter($this->userClients, fn($cid) => $cid !== $id);
+        // فقط اگر resource معتبر باشد
+        if (isset($this->clients[$id]) && is_resource($this->clients[$id])) {
+            fclose($this->clients[$id]);
         }
+
+        unset($this->clients[$id], $this->handshakes[$id], $this->rates[$id]);
+
+        // حذف از mapping user_id
+        $this->userClients = array_filter($this->userClients, fn($cid) => $cid !== $id);
     }
 
     private function encodeFrame(string $text): string
