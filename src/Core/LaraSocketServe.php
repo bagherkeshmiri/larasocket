@@ -111,28 +111,22 @@ class LaraSocketServe
     }
 
     /**
-     *  Extract token from WebSocket handshake request
-     *  Supports:
-     *    - Query string: /?token=... or /app/larasocket?token=...
-     *    - Header: Authorization: Bearer <token>
+     * Extract token from WebSocket handshake request query string
+     * Example URL: ws://192.168.100.31:9000/?token=1|haNBbx6pY4dmk2vrzMVP4EBbEiOJRoLf4IRiOlX36032971e
      */
     private function extractToken(string $headers): ?string
     {
-        // لاگ کامل هدر دریافتی
-        $this->logInfo("WebSocket handshake headers:\n" . $headers);
-
-        // بررسی هدر Authorization
-        if (preg_match('/Authorization:\s*Bearer\s*(.+)/i', $headers, $m)) {
-            $token = trim($m[1]);
-            $this->logInfo("Token found in Authorization header: {$token}");
-            return $token;
-        }
-
-        // بررسی query string
-        if (preg_match('#GET\s+([^\s]+)\s+HTTP/1\.1#', $headers, $m)) {
-            $url = $m[1];
+        // استخراج مسیر GET
+        if (preg_match('#GET\s+([^\s]+)\s+HTTP/1\.1#', $headers, $matches)) {
+            $url = $matches[1];
             $query = parse_url($url, PHP_URL_QUERY) ?: '';
-            parse_str($query, $qs);
+
+            // پارس امن query string حتی با کاراکترهای ویژه
+            $qs = [];
+            foreach (explode('&', $query) as $param) {
+                [$key, $value] = array_pad(explode('=', $param, 2), 2, null);
+                $qs[urldecode($key)] = $value !== null ? urldecode($value) : null;
+            }
 
             if (!empty($qs['token'])) {
                 $this->logInfo("Token found in query string: {$qs['token']}");
@@ -143,10 +137,8 @@ class LaraSocketServe
             return $qs['token'] ?? null;
         }
 
-        $this->logInfo("No token found in headers or query string.");
         return null;
     }
-
 
     private function isAuthorized(?string $token): bool
     {
