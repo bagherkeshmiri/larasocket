@@ -2,7 +2,39 @@
   "name": "bagherkeshmiri/larasocket",
   "description": "Simple, secure, native WebSocket server for Laravel (no external packages).",
   "type": "library",
+  "keywords": [
+    "laravel",
+    "websocket",
+    "realtime",
+    "broadcast",
+    "server",
+    "socket",
+    "native",
+    "php"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/bagherkeshmiri/larasocket",
+  "support": {
+    "issues": "https://github.com/bagherkeshmiri/larasocket/issues",
+    "source": "https://github.com/bagherkeshmiri/larasocket"
+  },
+  "authors": [
+    {
+      "name": "Bagher Keshmiri",
+      "email": "bagherkeshmiri@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=7.4",
+    "illuminate/support": "^8.0",
+    "illuminate/console": "^8.0",
+    "illuminate/config": "^8.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.0|^10.0",
+    "orchestra/testbench": "^6.0|^7.0|^8.0|^9.0"
+  },
   "autoload": {
     "psr-4": {
       "Bagherkeshmiri\\LaraSocket\\": "src/"
@@ -13,21 +45,23 @@
       "Bagherkeshmiri\\LaraSocket\\Tests\\": "tests/"
     }
   },
-  "require": {
-    "php": ">=8.1",
-    "illuminate/support": ">=8.0"
+  "scripts": {
+    "test": "phpunit",
+    "test-coverage": "phpunit --coverage-html coverage"
   },
-  "authors": [
-    {
-      "name": "Bagher Keshmiri",
-      "email": "bagherkeshmiri@gmail.com"
-    }
-  ],
+  "config": {
+    "sort-packages": true,
+    "preferred-install": "dist",
+    "optimize-autoloader": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
   "extra": {
     "laravel": {
       "providers": [
         "Bagherkeshmiri\\LaraSocket\\LaraSocketServiceProvider"
-      ]
+      ],
+      "aliases": {}
     }
   }
 }

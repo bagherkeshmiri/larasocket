@@ -1,10 +1,10 @@
 <?php
 
-namespace Bagherkeshmiri\LaraSocket;
+namespace Bagherkeshmiri\LaraSocket\Console\Commands;
 
 use Illuminate\Support\Facades\Log;
 
-class WebSocketServer
+class ServeWebSocket
 {
     private array $clients = [];
     private array $handshakes = [];
