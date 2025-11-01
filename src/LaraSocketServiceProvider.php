@@ -9,7 +9,7 @@ class LaraSocketServiceProvider extends ServiceProvider
     public function register()
     {
         // Load the package config
-        $this->mergeConfigFrom(__DIR__ . '/../config/larasocket.php', 'larasocket');
+        $this->mergeConfigFrom(__DIR__ . '/config/larasocket.php', 'larasocket');
     }
 
     public function boot()
