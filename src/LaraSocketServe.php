@@ -1,62 +1,99 @@
 <?php
 
-namespace Bagherkeshmiri\LaraSocket\Console\Commands;
+namespace Bagherkeshmiri\LaraSocket;
 
 use Illuminate\Support\Facades\Log;
 
 class LaraSocketServe
 {
+    private string $host;
+    private int $port;
     private array $clients = [];
     private array $handshakes = [];
     private array $rates = [];
 
-    public function run()
+    public function __construct(string $host = '127.0.0.1', int $port = 6001)
     {
-        $read = $this->clients;
+        $this->host = $host;
+        $this->port = $port;
+    }
 
-        foreach ($read as $res) {
-            $id = (int)$res;
-            $data = @fread($res, 2048);
+    public function run(): void
+    {
+        $server = stream_socket_server("tcp://{$this->host}:{$this->port}", $errno, $errstr);
 
-            if ($data === false || $data === '') {
-                $this->disconnectClient($id);
+        if (!$server) {
+            throw new \RuntimeException("Cannot start server: $errstr ($errno)");
+        }
+
+        stream_set_blocking($server, false);
+        $this->clients[(int)$server] = $server;
+        $this->handshakes[(int)$server] = false;
+
+        $this->logInfo("Listening on ws://{$this->host}:{$this->port}");
+
+        while (true) {
+            $read = $this->clients;
+            $write = $except = null;
+            if (stream_select($read, $write, $except, 0, 200000) === false) {
                 continue;
             }
 
-            if (!$this->handshakes[$id] && preg_match('/Sec-WebSocket-Key: (.*)\r\n/', $data, $m)) {
-                $key = trim($m[1]);
-                $token = $this->extractToken($data);
+            foreach ($read as $res) {
+                if ($res === $server) {
+                    $conn = stream_socket_accept($server, 0);
+                    if ($conn) {
+                        stream_set_blocking($conn, false);
+                        $id = (int)$conn;
+                        $this->clients[$id] = $conn;
+                        $this->handshakes[$id] = false;
+                    }
+                    continue;
+                }
 
-                if (!$this->validateToken($token)) {
-                    fclose($res);
+                $id = (int)$res;
+                $data = @fread($res, 2048);
+
+                if ($data === false || $data === '') {
                     $this->disconnectClient($id);
                     continue;
                 }
 
-                $accept = base64_encode(sha1($key . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
-                $headers = "HTTP/1.1 101 Switching Protocols\r\n" .
-                    "Upgrade: websocket\r\n" .
-                    "Connection: Upgrade\r\n" .
-                    "Sec-WebSocket-Accept: {$accept}\r\n\r\n";
+                if (!$this->handshakes[$id] && preg_match('/Sec-WebSocket-Key: (.*)\r\n/', $data, $m)) {
+                    $key = trim($m[1]);
+                    $token = $this->extractToken($data);
 
-                fwrite($res, $headers);
-                $this->handshakes[$id] = true;
-                continue;
-            }
+                    if (!$this->validateToken($token)) {
+                        fclose($res);
+                        $this->disconnectClient($id);
+                        continue;
+                    }
 
-            if ($this->handshakes[$id]) {
-                $msg = $this->decodeFrame($data);
-                if ($msg === '') {
+                    $accept = base64_encode(sha1($key . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
+                    $headers = "HTTP/1.1 101 Switching Protocols\r\n" .
+                        "Upgrade: websocket\r\n" .
+                        "Connection: Upgrade\r\n" .
+                        "Sec-WebSocket-Accept: {$accept}\r\n\r\n";
+
+                    fwrite($res, $headers);
+                    $this->handshakes[$id] = true;
                     continue;
                 }
 
-                if (!$this->allowMessage($id)) {
-                    fclose($res);
-                    $this->disconnectClient($id);
-                    continue;
-                }
+                if ($this->handshakes[$id]) {
+                    $msg = $this->decodeFrame($data);
+                    if ($msg === '') {
+                        continue;
+                    }
 
-                $this->broadcast($msg, $exclude = $id);
+                    if (!$this->allowMessage($id)) {
+                        fclose($res);
+                        $this->disconnectClient($id);
+                        continue;
+                    }
+
+                    $this->broadcast($msg, $exclude = $id);
+                }
             }
         }
     }
@@ -70,7 +107,7 @@ class LaraSocketServe
     private function validateToken(?string $token): bool
     {
         $validator = config('larasocket.token_validator');
-        return is_callable($validator) ? (bool)call_user_func($validator, $token) : false;
+        return is_callable($validator) ? (bool)call_user_func($validator, $token) : true;
     }
 
     private function allowMessage(int $id): bool

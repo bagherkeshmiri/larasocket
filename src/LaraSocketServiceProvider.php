@@ -2,27 +2,31 @@
 
 namespace Bagherkeshmiri\LaraSocket;
 
+use Bagherkeshmiri\LaraSocket\Console\LaraSocketServeCommand;
 use Illuminate\Support\ServiceProvider;
 
 class LaraSocketServiceProvider extends ServiceProvider
 {
     public function register()
     {
-        // Load the package config
-        $this->mergeConfigFrom(__DIR__ . '/config/larasocket.php', 'larasocket');
+        $configPath = __DIR__ . '/config/larasocket.php';
+        if (file_exists($configPath)) {
+            $this->mergeConfigFrom($configPath, 'larasocket');
+        }
     }
 
     public function boot()
     {
-        // Publish the config file to the application
-        $this->publishes([
-            __DIR__ . '/config/larasocket.php' => config_path('larasocket.php'),
-        ], 'config');
+        $configPath = __DIR__ . '/config/larasocket.php';
+        if (file_exists($configPath)) {
+            $this->publishes([
+                $configPath => config_path('larasocket.php'),
+            ], 'config');
+        }
 
-        // Register artisan commands
         if ($this->app->runningInConsole()) {
             $this->commands([
-                Console\Commands\LaraSocketServe::class,
+                LaraSocketServeCommand::class,
             ]);
         }
     }
