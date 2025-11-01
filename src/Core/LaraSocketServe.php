@@ -111,15 +111,21 @@ class LaraSocketServe
     }
 
     /**
-     * Extract token from WebSocket handshake request
-     * Supports URLs like /?token=... or /app/larasocket?token=...
+     *  Extract token from WebSocket handshake request
+     *  Supports:
+     *    - Query string: /?token=... or /app/larasocket?token=...
+     *    - Header: Authorization: Bearer <token>
      */
     private function extractToken(string $headers): ?string
     {
+        // بررسی هدر Authorization
+        if (preg_match('/Authorization:\s*Bearer\s*(.+)/i', $headers, $m)) {
+            return trim($m[1]);
+        }
+
+        // بررسی query string
         if (preg_match('#GET\s+([^\s]+)\s+HTTP/1\.1#', $headers, $m)) {
             $url = $m[1];
-
-            // حذف هر مسیر اضافی قبل از query
             $query = parse_url($url, PHP_URL_QUERY) ?: '';
             parse_str($query, $qs);
 
@@ -128,7 +134,6 @@ class LaraSocketServe
 
         return null;
     }
-
 
 
     private function isAuthorized(?string $token): bool
