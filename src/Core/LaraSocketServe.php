@@ -118,9 +118,14 @@ class LaraSocketServe
      */
     private function extractToken(string $headers): ?string
     {
+        // لاگ کامل هدر دریافتی
+        $this->logInfo("WebSocket handshake headers:\n" . $headers);
+
         // بررسی هدر Authorization
         if (preg_match('/Authorization:\s*Bearer\s*(.+)/i', $headers, $m)) {
-            return trim($m[1]);
+            $token = trim($m[1]);
+            $this->logInfo("Token found in Authorization header: {$token}");
+            return $token;
         }
 
         // بررسی query string
@@ -129,9 +134,16 @@ class LaraSocketServe
             $query = parse_url($url, PHP_URL_QUERY) ?: '';
             parse_str($query, $qs);
 
+            if (!empty($qs['token'])) {
+                $this->logInfo("Token found in query string: {$qs['token']}");
+            } else {
+                $this->logInfo("No token found in query string.");
+            }
+
             return $qs['token'] ?? null;
         }
 
+        $this->logInfo("No token found in headers or query string.");
         return null;
     }
 
